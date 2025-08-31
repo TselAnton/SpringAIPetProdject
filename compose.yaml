@@ -1,52 +1,35 @@
 version: "3.9"
 services:
-  opensearch:
-    image: opensearchproject/opensearch:latest
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
     ports:
-      - 9200:9200
-      - 9600:9600
-    environment:
-      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-      - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=SoMe12#4_FfF%"
-      - "discovery.type=single-node"
+      - "11431:11434"
+    volumes:
+      - ./ollama:/root/.ollama
+    entrypoint: >
+      /bin/sh -c "
+        ollama serve &
+        sleep 2 &&
+        ollama pull gemma3:4b-it-q4_K_M &&
+        ollama pull mxbai-embed-large &&
+        wait
+      "
+    restart: unless-stopped
 
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.4.4
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+  postgresql:
+    image: postgres:13.3
+    container_name: postgresql
     ports:
-      - 22181:2181
-
-  kafka:
-    image: confluentinc/cp-kafka:7.4.4
-    depends_on:
-      - zookeeper
-    ports:
-      - 29092:29092
+      - "8181:5432"
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      delete.topic.enable: true
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
 
+    volumes:
+      - ./postgresql:/root/.postgresql
 
-#  opensearch:
-#    image: opensearch
-#
-#  postgresql:
-#    image: postgres:13.3
-#    container_name: postgresql
-#    ports:
-#      - "8181:5432"
-#    environment:
-#      - POSTGRES_DB=postgres
-#      - POSTGRES_USER=postgres
-#      - POSTGRES_PASSWORD=postgres
-#
 #  spring-app:
 #    build: .
 #    depends_on:
