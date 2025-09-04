@@ -14,5 +14,5 @@ CREATE TABLE tb_message(
   content TEXT NOT NULL,
   created_at TIMESTAMP NOT NULL,
   role TEXT NOT NULL,
-  chat_id UUID NOT NULL REFERENCES tb_chat (id)
+  chat_id UUID NULL REFERENCES tb_chat (id)
 );

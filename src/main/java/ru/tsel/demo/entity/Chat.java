@@ -43,6 +43,6 @@ public class Chat {
 	private LocalDateTime createdAt;
 
 	@JoinColumn(name = "chat_id")
-	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<Message> history = new ArrayList<>();
 }

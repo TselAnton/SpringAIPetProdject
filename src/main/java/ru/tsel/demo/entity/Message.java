@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,7 +27,7 @@ import org.hibernate.annotations.CreationTimestamp;
 public class Message {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.UUID)
+	@GeneratedValue(strategy = GenerationType.AUTO)
 	@Column(name = "id", nullable = false)
 	private UUID id;
 
@@ -35,7 +36,7 @@ public class Message {
 
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false)
-	private long createdAt;
+	private LocalDateTime createdAt;
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "role", nullable = false)
