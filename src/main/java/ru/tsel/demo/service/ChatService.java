@@ -1,16 +1,20 @@
 package ru.tsel.demo.service;
 
 import java.beans.Transient;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import ru.tsel.demo.entity.Chat;
 import ru.tsel.demo.entity.Message;
 import ru.tsel.demo.entity.MessageRole;
@@ -87,48 +91,31 @@ public class ChatService {
         chatRepository.save(chat);
     }
 
+    @SneakyThrows
+    public SseEmitter proceedInteractionWithStreaming(UUID chatId, String userPrompt) {
+        selfInjection.addChatEntry(chatId, userPrompt, MessageRole.USER);
 
+        SseEmitter sseEmitter = new SseEmitter(0L);
 
-    //    @Transactional
-    //    public void proceedInteraction(Long chatId, String prompt) {
-    //        myProxy.addChatEntry(chatId, prompt, USER);
-    //        String answer = chatClient.prompt().user(prompt).call().content();
-    //        myProxy.addChatEntry(chatId, answer, ASSISTANT);
-    //    }
+        StringBuilder responseToken = new StringBuilder();
+        chatClient.prompt()
+            .user(userPrompt)
+            .stream()
+            .chatResponse()
+            .subscribe(
+                response -> {
+                    responseToken.append(response.getResult().getOutput().getText());
+                    getSend(response, sseEmitter);
+                },
+                sseEmitter::completeWithError,
+                () -> selfInjection.addChatEntry(chatId, responseToken.toString(), MessageRole.ASSISTANT)
+            );
 
+        return sseEmitter;
+    }
 
-//    @Transactional
-//    public void addChatEntry(Long chatId, String prompt, Role role) {
-//        Chat chat = chatRepository.findById(chatId).orElseThrow();
-//        chat.addChatEntry(ChatEntry.builder().content(prompt).role(role).build());
-//    }
-//
-
-//
-//    public SseEmitter proceedInteractionWithStreaming(Long chatId, String userPrompt) {
-//        myProxy.addChatEntry(chatId, userPrompt, USER);
-//
-//        SseEmitter sseEmitter = new SseEmitter(0L);
-//        final StringBuilder answer = new StringBuilder();
-//
-//        chatClient
-//                .prompt(userPrompt)
-//                .stream()
-//                .chatResponse()
-//                .subscribe(
-//                        (ChatResponse response) -> processToken(response, sseEmitter, answer),
-//                        sseEmitter::completeWithError,
-//                        () -> myProxy.addChatEntry(chatId, answer.toString(), ASSISTANT));
-//        return sseEmitter;
-//    }
-//
-//
-//
-//
-//    @SneakyThrows
-//    private static void processToken(ChatResponse response, SseEmitter emitter, StringBuilder answer) {
-//        var token = response.getResult().getOutput();
-//        emitter.send(token);
-//        answer.append(token.getText());
-//    }
+    @SneakyThrows
+    private static void getSend(ChatResponse response, SseEmitter sseEmitter) {
+        sseEmitter.send(response.getResult().getOutput());
+    }
 }

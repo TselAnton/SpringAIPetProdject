@@ -44,7 +44,7 @@ public class ChatController {
 		return "redirect:/";
 	}
 
-	@PostMapping("/chat/{chatId}/entry")
+//	@PostMapping("/chat/{chatId}/entry")
 	public String talkToModel(
 		@PathVariable UUID chatId,
 		@RequestParam String prompt
