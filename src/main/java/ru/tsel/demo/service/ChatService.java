@@ -1,24 +1,21 @@
 package ru.tsel.demo.service;
 
-import java.beans.Transient;
-import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import ru.tsel.demo.entity.Chat;
-import ru.tsel.demo.entity.Message;
-import ru.tsel.demo.entity.MessageRole;
 import ru.tsel.demo.repository.ChatRepository;
+import ru.tsel.demo.service.memory.PostgresChatMemory;
 
 @Slf4j
 @Service
@@ -27,6 +24,7 @@ public class ChatService {
 
     private final ChatClient chatClient;
     private final ChatRepository chatRepository;
+    private final PostgresChatMemory postgresChatMemory;
 
     @Autowired
     private ChatService selfInjection;
@@ -57,65 +55,28 @@ public class ChatService {
         chatRepository.deleteById(chatId);
     }
 
-    @Transactional
-    public void proceedInteraction(UUID chatId, String prompt) {
-        selfInjection.addChatEntry(chatId, prompt, MessageRole.USER);
-        log.info("User question: {}", prompt);
-
-        try {
-            String answer = chatClient.prompt()
-                .user(prompt)
-                .call()
-                .content();
-
-            log.info("Assistant answer: {}", answer);
-
-            selfInjection.addChatEntry(chatId, answer, MessageRole.ASSISTANT);
-        } catch (RuntimeException e) {
-            log.error("Exception for chat", e);
-        }
-    }
-
-    @Transactional
-    public void addChatEntry(UUID chatId, String prompt, MessageRole messageRole) {
-        Chat chat = chatRepository.findById(chatId)
-            .orElseThrow(() -> new RuntimeException("Chat not found by ID " + chatId));
-        chat
-            .getHistory()
-            .add(
-                Message.builder()
-                    .content(prompt)
-                    .role(messageRole)
-                    .build()
-            );
-        chatRepository.save(chat);
-    }
-
     @SneakyThrows
     public SseEmitter proceedInteractionWithStreaming(UUID chatId, String userPrompt) {
-        selfInjection.addChatEntry(chatId, userPrompt, MessageRole.USER);
-
         SseEmitter sseEmitter = new SseEmitter(0L);
-
-        StringBuilder responseToken = new StringBuilder();
         chatClient.prompt()
+            .advisors(
+                MessageChatMemoryAdvisor.builder(postgresChatMemory)
+                    .conversationId(chatId.toString())
+                    .build()
+            )
             .user(userPrompt)
             .stream()
             .chatResponse()
             .subscribe(
-                response -> {
-                    responseToken.append(response.getResult().getOutput().getText());
-                    getSend(response, sseEmitter);
-                },
-                sseEmitter::completeWithError,
-                () -> selfInjection.addChatEntry(chatId, responseToken.toString(), MessageRole.ASSISTANT)
+                response -> getSend(response, sseEmitter),
+                sseEmitter::completeWithError
             );
-
         return sseEmitter;
     }
 
     @SneakyThrows
     private static void getSend(ChatResponse response, SseEmitter sseEmitter) {
-        sseEmitter.send(response.getResult().getOutput());
+        AssistantMessage assistantMessage = response.getResult().getOutput();
+        sseEmitter.send(assistantMessage);
     }
 }
