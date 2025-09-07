@@ -44,5 +44,5 @@ public class Chat {
 
 	@JoinColumn(name = "chat_id")
 	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<Message> history = new ArrayList<>();
+	private List<ChatMessage> history = new ArrayList<>();
 }

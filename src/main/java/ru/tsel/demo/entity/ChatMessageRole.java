@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public enum MessageRole {
+public enum ChatMessageRole {
 
 	USER("user"),
 
@@ -14,8 +14,8 @@ public enum MessageRole {
 
 	private final String roleName;
 
-	public static MessageRole of(String roleName) {
-		return Arrays.stream(MessageRole.values())
+	public static ChatMessageRole of(String roleName) {
+		return Arrays.stream(ChatMessageRole.values())
 			.filter(role -> role.getRoleName().equals(roleName))
 			.findFirst()
 			.orElse(null);

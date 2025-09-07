@@ -18,13 +18,13 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
-@Table(name = "tb_message")
+@Table(name = "tb_chat_message")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Message {
+public class ChatMessage {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
@@ -40,5 +40,5 @@ public class Message {
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "role", nullable = false)
-	private MessageRole role;
+	private ChatMessageRole role;
 }

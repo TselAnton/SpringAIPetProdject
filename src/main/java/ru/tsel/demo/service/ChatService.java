@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import ru.tsel.demo.entity.Chat;
 import ru.tsel.demo.repository.ChatRepository;
-import ru.tsel.demo.service.memory.PostgresChatMemory;
 
 @Slf4j
 @Service
@@ -24,7 +23,6 @@ public class ChatService {
 
     private final ChatClient chatClient;
     private final ChatRepository chatRepository;
-    private final PostgresChatMemory postgresChatMemory;
 
     @Autowired
     private ChatService selfInjection;
@@ -59,11 +57,9 @@ public class ChatService {
     public SseEmitter proceedInteractionWithStreaming(UUID chatId, String userPrompt) {
         SseEmitter sseEmitter = new SseEmitter(0L);
         chatClient.prompt()
-            .advisors(
-                MessageChatMemoryAdvisor.builder(postgresChatMemory)
-                    .conversationId(chatId.toString())
-                    .build()
-            )
+            .advisors(advisorSpec -> advisorSpec.param(
+                ChatMemory.CONVERSATION_ID, chatId
+            ))
             .user(userPrompt)
             .stream()
             .chatResponse()
