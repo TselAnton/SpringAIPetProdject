@@ -1,6 +1,5 @@
 package ru.tsel.demo.springai;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -10,7 +9,6 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.transaction.annotation.Transactional;
 import ru.tsel.demo.entity.Chat;
-import ru.tsel.demo.entity.ChatMessage;
 import ru.tsel.demo.repository.ChatRepository;
 import ru.tsel.demo.utils.ChatMessageConverter;
 
@@ -35,12 +33,12 @@ public class PostgresChatMemory implements ChatMemory {
 
 	@Override
 	public List<Message> get(String chatId) {
-		return getChat(chatId)
-			.getHistory()
+		Chat chat = getChat(chatId);
+		long messagesToSkip = Math.max(chat.getHistory().size() - maxMessages, 0L);
+		return chat.getHistory()
 			.stream()
-			.sorted(Comparator.comparing(ChatMessage::getCreatedAt).reversed())
+			.skip(messagesToSkip)
 			.map(ChatMessageConverter::convertToSpringModel)
-			.limit(maxMessages)
 			.collect(Collectors.toList());
 	}
 

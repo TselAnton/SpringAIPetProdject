@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -42,6 +43,7 @@ public class Chat {
 	@Column(name = "created_at", nullable = false)
 	private LocalDateTime createdAt;
 
+	@OrderBy("createdAt ASC")
 	@JoinColumn(name = "chat_id")
 	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<ChatMessage> history = new ArrayList<>();

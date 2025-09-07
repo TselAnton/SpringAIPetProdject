@@ -21,7 +21,7 @@ import ru.tsel.demo.repository.RAGDocumentRepository;
 @Service
 public class DocumentLoadService implements CommandLineRunner {
 
-    private static final int CHUNK_SIZE = 500;
+    private static final int CHUNK_SIZE = 200;
 
     @Autowired
     private RAGDocumentRepository documentRepository;

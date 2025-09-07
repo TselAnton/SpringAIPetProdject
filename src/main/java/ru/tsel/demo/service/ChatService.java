@@ -65,7 +65,8 @@ public class ChatService {
             .chatResponse()
             .subscribe(
                 response -> getSend(response, sseEmitter),
-                sseEmitter::completeWithError
+                sseEmitter::completeWithError,
+                sseEmitter::complete
             );
         return sseEmitter;
     }
