@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import ru.tsel.demo.repository.ChatRepository;
 import ru.tsel.demo.springai.PostgresChatMemory;
+import ru.tsel.demo.springai.advisors.ExpansionQueryAdvisor;
 import ru.tsel.demo.utils.PromptConstants;
 
 @Configuration
@@ -23,15 +24,14 @@ public class SpringAiConfiguration {
 	public ChatClient chatClient(
 		ChatClient.Builder builder,
 		@Qualifier("postgresChatMemoryAdvisor") Advisor postgresMemoryAdvisor,
-		@Qualifier("loggerAdviser") Advisor loggerAdviser,
 		@Qualifier("ragAdvisor") Advisor ragAdvisor
 	) {
 		return builder
 			.defaultAdvisors(
 				postgresMemoryAdvisor,
-				loggerAdviser,
+				SimpleLoggerAdvisor.builder().order(Integer.MIN_VALUE + 5_000).build(),
 				ragAdvisor,
-				loggerAdviser
+				SimpleLoggerAdvisor.builder().order(Integer.MIN_VALUE + 10_000).build()
 			)
 			.defaultOptions(
 				OllamaOptions.builder()
@@ -49,6 +49,7 @@ public class SpringAiConfiguration {
 	public Advisor postgesChatMemoryAdvisor(@Qualifier("postgresChatMemory") ChatMemory chatMemory) {
 		return MessageChatMemoryAdvisor
 			.builder(chatMemory)
+			.order(Integer.MIN_VALUE + 1_000)
 			.build();
 	}
 
@@ -63,13 +64,15 @@ public class SpringAiConfiguration {
 					.topK(4)
 					.similarityThreshold(0.4)
 					.build()
-			).build();
+			)
+			.order(Integer.MIN_VALUE + 7_500)
+			.build();
 	}
 
 	@Bean
-	@Qualifier("loggerAdviser")
-	public Advisor logAdviser() {
-		return SimpleLoggerAdvisor.builder()
+	@Qualifier("expansion")
+	public Advisor expansionAdvisor() {
+		return ExpansionQueryAdvisor.builder()
 			.build();
 	}
 
