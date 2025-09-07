@@ -39,9 +39,9 @@ services:
       - 9600:9600
     environment:
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-      - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=SoMe12#4_FfF%"
       - "discovery.type=single-node"
       - "plugins.security.disabled=true"
+      - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=SoMe12#4_FfF%"
     volumes:
       - ./opensearch/data:/usr/share/opensearch/data
     restart: unless-stopped
@@ -54,8 +54,6 @@ services:
     ports:
       - 5601:5601
     environment:
-      - OPENSEARCH_HOSTS='["https://opensearch:9200"]'
-      - OPENSEARCH_USERNAME=admin
-      - OPENSEARCH_PASSWORD=SoMe12#4_FfF%
+      - OPENSEARCH_HOSTS=http://opensearch:9200
       - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
-#    restart: unless-stopped
+    restart: unless-stopped

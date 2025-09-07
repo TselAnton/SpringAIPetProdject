@@ -3,27 +3,28 @@ package ru.tsel.demo.configuration;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
+import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import ru.tsel.demo.repository.ChatRepository;
 import ru.tsel.demo.springai.PostgresChatMemory;
+import ru.tsel.demo.utils.PromptConstants;
 
 @Configuration
 public class SpringAiConfiguration {
 
-	@Autowired
-	private ChatRepository chatRepository;
-
 	@Bean
 	public ChatClient chatClient(
 		ChatClient.Builder builder,
-		@Qualifier("postgresChatMemoryAdvisor") Advisor advisor
+		@Qualifier("postgresChatMemoryAdvisor") Advisor postgresMemoryAdvisor,
+		@Qualifier("ragAdvisor") Advisor ragAdvisor
 	) {
 		return builder
-			.defaultAdvisors(advisor)
+			.defaultAdvisors(postgresMemoryAdvisor, ragAdvisor)
 			.build();
 	}
 
@@ -33,6 +34,19 @@ public class SpringAiConfiguration {
 		return MessageChatMemoryAdvisor
 			.builder(chatMemory)
 			.build();
+	}
+
+	@Bean
+	@Qualifier("ragAdvisor")
+	public Advisor getRagAdviser(VectorStore vectorStore) {
+		return QuestionAnswerAdvisor
+			.builder(vectorStore)
+			.promptTemplate(PromptConstants.MY_PROMPT_TEMPLATE)
+			.searchRequest(
+				SearchRequest.builder()
+					.topK(4)
+					.build()
+			).build();
 	}
 
 	@Bean

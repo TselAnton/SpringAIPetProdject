@@ -11,7 +11,7 @@ DROP TABLE IF EXISTS public.tb_chat_message;
 CREATE TABLE public.tb_chat(
     id                  UUID NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
     title               TEXT NOT NULL,
-    created_atTIMESTAMP NOT NULL
+    created_at          TIMESTAMP NOT NULL
 );
 
 CREATE TABLE public.tb_chat_message(

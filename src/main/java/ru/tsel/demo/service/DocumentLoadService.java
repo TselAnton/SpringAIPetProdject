@@ -1,5 +1,6 @@
 package ru.tsel.demo.service;
 
+import java.io.FileNotFoundException;
 import java.util.List;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -33,38 +34,43 @@ public class DocumentLoadService implements CommandLineRunner {
 
     @SneakyThrows
     public void loadDocuments() {
-        Resource[] resources = resolver.getResources("classpath:/rag_files/**/*.txt");
-        if (resources.length == 0) {
-            log.info("Not found any resources for load");
-            return;
-        }
-
-        for (Resource resource : resources) {
-            String resourceHashSum = calcContentHash(resource);
-            if (documentRepository.existsByFilenameAndContentHash(resource.getFilename(), resourceHashSum)) {
-                log.info("Resource {} already uploaded with hash sum {}", resource.getFilename(), resourceHashSum);
-                continue;
+        try {
+            Resource[] resources = resolver.getResources("classpath:/rag_files/**/*.txt");
+            if (resources.length == 0) {
+                log.info("Not found any resources for load");
+                return;
             }
 
-            // Разбиение документа на чанки
-            List<Document> documents = new TextReader(resource).get();
-            List<Document> chunks = TokenTextSplitter.builder()
-                .withChunkSize(CHUNK_SIZE)
-                .build()
-                .apply(documents);
+            for (Resource resource : resources) {
+                String resourceHashSum = calcContentHash(resource);
+                if (documentRepository.existsByFilenameAndContentHash(resource.getFilename(), resourceHashSum)) {
+                    log.info("Resource {} already uploaded with hash sum {}", resource.getFilename(), resourceHashSum);
+                    continue;
+                }
 
-            // Запись документа в vecor-store (opensearch)
-            vectorStore.accept(chunks);
-
-            // Сохранение файла в БД
-            documentRepository.save(
-                RAGDocument.builder()
-                    .documentType("txt")
-                    .chunkCount(chunks.size())
-                    .filename(resource.getFilename())
-                    .contentHash(resourceHashSum)
+                // Разбиение документа на чанки
+                List<Document> documents = new TextReader(resource).get();
+                List<Document> chunks = TokenTextSplitter.builder()
+                    .withChunkSize(CHUNK_SIZE)
                     .build()
-            );
+                    .apply(documents);
+
+                // Запись документа в vecor-store (opensearch)
+                vectorStore.accept(chunks);
+
+                // Сохранение файла в БД
+                documentRepository.save(
+                    RAGDocument.builder()
+                        .documentType("txt")
+                        .chunkCount(chunks.size())
+                        .filename(resource.getFilename())
+                        .contentHash(resourceHashSum)
+                        .build()
+                );
+            }
+
+        } catch (FileNotFoundException e) {
+            log.warn("Not found any files for RAG", e);
         }
     }
 
